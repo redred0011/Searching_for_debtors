@@ -67,16 +67,59 @@ def list_customers():
         for customer in customers:
             print(f"ID: {customer.id}, Nazwa: {customer.name}, Numer telefonu: {customer.number_phone}, E-mail: {customer.e_mail}, Numer konta bankowego: {customer.number_bank_statement}")
 
+def update_customer():
+    session = Session()
+    list_customers()
+    customer_id = input("Wprowadź ID klienta, którego dane chcesz zaktualizować:")
+
+    customer = session.query(Customer).filter_by(id=customer_id).first()
+
+    if customer:
+        print("Wybierz pole do zaktualizowania:")
+        print("1. Nazwa")
+        print("2. Numer telefonu")
+        print("3. E-mail")
+        print("4. Numer konta bankowego")
+        choice = input("Twój wybór (1/2/3/4):")
+
+        if choice == "1":
+            new_name = input("Nowa nazwa:")
+            customer.name = new_name
+        elif choice == "2":
+            new_number_phone = input("Nowy numer telefonu:")
+            customer.number_phone = new_number_phone
+        elif choice == "3":
+            new_e_mail = input("Nowy e-mail:")
+            customer.e_mail = new_e_mail
+        elif choice == "4":
+            new_number_bank_statement = input("Nowy numer konta bankowego:")
+            customer.number_bank_statement = new_number_bank_statement
+        else:
+            print("Nieprawidłowy wybór.")
+
+        session.commit()
+        session.close()
+        print("Zaktualizowano dane klienta o ID:", customer_id)
+    else:
+        session.close()
+        print("Klient o podanym ID nie istnieje.")
+
 
 def main():
     
-    choose = input("Dodanie czy usunięcie kilenta?(Dodanie - D , Usnunięcie - U):").lower()
+    choose = input("Dodanie - D , Usnunięcie - U , Zmiana danych - Z:").lower()
 
     if choose == "d":
+        
         add_customer()
     
     elif choose == "u":
+        
         delete_customer()
+    
+    elif choose == "z":
+        
+        update_customer()
     
     else:
         main()
