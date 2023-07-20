@@ -7,6 +7,7 @@ import configparser
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import getpass
 
 # Tworzenie bazy danych i tabeli dla Debtors
 debtors_engine = create_engine('sqlite:///debtors.db')
@@ -26,6 +27,20 @@ BaseDebtors.metadata.create_all(debtors_engine)
 
 # Tworzenie klasy sesji dla Debtors
 SessionDebtors = sessionmaker(bind=debtors_engine)
+
+def get_hidden_password(prompt="Enter password: "):
+    try:
+        # Wprowadzanie hasła z ukrytymi znakami
+        password = getpass.getpass(prompt)
+    except Exception as e:
+        # W przypadku błędu, np. w środowiskach bez wsparcia dla getpass
+        # wprowadzenie hasła normalnie (bez ukrywania)
+        password = input(prompt)
+    return password
+
+
+
+
 
 def send_email(sender_email, sender_password, recipient_email, subject, body):
     try:
@@ -87,8 +102,9 @@ else:
 # Dane do wysyłania emaila
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
-sender_email = '#######' # Mail konta Zoho
-sender_password = '######'  # hasło konta Zoho
+sender_email = '#### # Mail konta Zoho
+password = get_hidden_password("Podaj hasło: ")
+
 subject = "Prośba o uregulowanie płatności !!!!!!!"
 
 # Wczytywanie treści wiadomości z pliku "prośba.docx"
@@ -103,4 +119,4 @@ print(body)
 
 # Wywołanie funkcji send_email dla każdego adresu e-mail
 for recipient_email in emails:
-    send_email(sender_email, sender_password, recipient_email, subject, body)
+    send_email(sender_email, password, recipient_email, subject, body)
