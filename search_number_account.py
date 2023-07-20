@@ -48,10 +48,21 @@ BaseDebtors.metadata.create_all(debtors_engine)
 SessionDebtors = sessionmaker(bind=debtors_engine)
 
 
+def add_customer_if_not_exist(name, number_phone, e_mail, number_bank_statement):
+    session = SessionCustomers()
+    customer = session.query(Customer).filter_by(name=name, e_mail=e_mail).first()
+
+    if not customer:
+        new_customer = Customer(name=name, number_phone=number_phone, e_mail=e_mail, number_bank_statement=number_bank_statement)
+        session.add(new_customer)
+        session.commit()
+    session.close()
+
 def get_customer_bank_account(customer_id):
     session = SessionCustomers()
     customer = session.query(Customer).filter_by(id=customer_id).first()
     session.close()
+
     if customer:
         return customer.number_bank_statement
     else:
