@@ -2,15 +2,15 @@ from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import csv
-import sending_mail
-# Tworzenie silnika bazy danych
-engine = create_engine('sqlite:///Customers.db', echo=True)
 
-# Inicjalizacja klasy bazowej
-Base = declarative_base()
+# Tworzenie silnika bazy danych dla Customers
+customers_engine = create_engine('sqlite:///Customers.db', echo=True)
 
-# Definicja modelu tabeli
-class Customer(Base): 
+# Inicjalizacja klasy bazowej dla Customers
+BaseCustomers = declarative_base()
+
+# Definicja modelu tabeli dla Customers
+class Customer(BaseCustomers): 
     __tablename__ = 'Customers'
     
     id = Column(Integer, primary_key=True)
@@ -19,14 +19,37 @@ class Customer(Base):
     e_mail = Column(String)  
     number_bank_statement = Column(String)  
     
-# Tworzenie tabeli w bazie danych
-Base.metadata.create_all(engine)
+# Tworzenie tabeli w bazie danych dla Customers
+BaseCustomers.metadata.create_all(customers_engine)
 
-# Tworzenie klasy sesji
-Session = sessionmaker(bind=engine)
+# Tworzenie klasy sesji dla Customers
+SessionCustomers = sessionmaker(bind=customers_engine)
+
+# Tworzenie silnika bazy danych dla Debtors
+debtors_engine = create_engine('sqlite:///Debtors.db', echo=True)
+
+# Inicjalizacja klasy bazowej dla Debtors
+BaseDebtors = declarative_base()
+
+# Definicja modelu tabeli dla Debtors
+class Debtor(BaseDebtors):
+    __tablename__ = 'Debtors'
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String)
+    number_phone = Column(String)
+    e_mail = Column(String)
+    number_bank_statement = Column(String)
+
+# Tworzenie tabeli w bazie danych dla Debtors
+BaseDebtors.metadata.create_all(debtors_engine)
+
+# Tworzenie klasy sesji dla Debtors
+SessionDebtors = sessionmaker(bind=debtors_engine)
+
 
 def get_customer_bank_account(customer_id):
-    session = Session()
+    session = SessionCustomers()
     customer = session.query(Customer).filter_by(id=customer_id).first()
     session.close()
     if customer:
@@ -40,15 +63,14 @@ def find_transactions_with_account_number(account_number, filename):
         reader = csv.reader(file)
         header = next(reader)  # Pomijamy nagłówek
         for row in reader:
-            full_row_text = ' '.join(row)  # Łączymy wszystkie pola w wierszu
-            if account_number in full_row_text:
-                found_rows.append(', '.join(row))
+            if account_number in row:
+                found_rows.append(dict(zip(header, row)))
     return found_rows
 
 def main():
     csv_file = 'bank_statements.csv'
 
-    session = Session()
+    session = SessionCustomers()
     customers = session.query(Customer).all()
     session.close()
 
@@ -63,18 +85,27 @@ def main():
         found_rows = find_transactions_with_account_number(account_number, csv_file)
 
         if not found_rows:
-            print(f"Nie znaleziono żadnych operacji dla klientów:")
-            accounts_without_transactions.append(account_number)
+            print(f"Nie znaleziono żadnych operacji dla klienta o ID: {customer.id}, Nazwie: {customer.name}, E-mail: {customer.e_mail}")
+            accounts_without_transactions.append(customer)
+
         else:
             print(f"Operacje dla klienta o ID: {customer.id}, nazwie: {customer.name} i numerze konta bankowego: {account_number}")
             for row in found_rows:
                 print(row)
 
     if accounts_without_transactions:
-        print("Operacja dla tego kontrahenta nie została znaleziona:")
-        for account_number in accounts_without_transactions:
-             print(f"Id: {customer.id}, Nazwa: {customer.name}, Numer rachunku: {account_number}")
-             
+        print("Operacja dla tego kontrahenta nie została znaleziona. Dodawanie do Debtors:")
+        session = SessionDebtors()
+        for debtor_customer in accounts_without_transactions:
+            debtor = Debtor(
+                name=debtor_customer.name,
+                number_phone=debtor_customer.number_phone,
+                e_mail=debtor_customer.e_mail,
+                number_bank_statement=debtor_customer.number_bank_statement
+            )
+            session.add(debtor)
+        session.commit()
+        session.close()
 
 if __name__ == "__main__":
     main()
