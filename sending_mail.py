@@ -30,8 +30,7 @@ SessionDebtors = sessionmaker(bind=debtors_engine)
 
 def get_hidden_password(prompt="Enter password: "):
     try:
-        password = getpass.getpass("Test password prompt: ")
-        print("Hasło wpisane: ", password)
+        password = getpass.getpass("Wprowadź hasło:")
     except Exception as e:
         print("Wystąpił błąd:", e)
 
@@ -98,7 +97,7 @@ else:
 # Dane do wysyłania emaila
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
-sender_email = "b.anczewski@adwisen.com" # Mail konta Zoho
+sender_email = "########" # Mail konta Zoho
 password = get_hidden_password("Podaj hasło: ")
 
 subject = "Prośba o uregulowanie płatności !!!!!!!"
