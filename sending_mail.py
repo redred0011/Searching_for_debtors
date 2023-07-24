@@ -1,13 +1,13 @@
+import os
+import docx
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
-import docx
-import configparser
+import getpass
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import getpass
+import io
 
 # Tworzenie bazy danych i tabeli dla Debtors
 debtors_engine = create_engine('sqlite:///debtors.db')
@@ -30,17 +30,12 @@ SessionDebtors = sessionmaker(bind=debtors_engine)
 
 def get_hidden_password(prompt="Enter password: "):
     try:
-        # Wprowadzanie hasła z ukrytymi znakami
-        password = getpass.getpass(prompt)
+        password = getpass.getpass("Test password prompt: ")
+        print("Hasło wpisane: ", password)
     except Exception as e:
-        # W przypadku błędu, np. w środowiskach bez wsparcia dla getpass
-        # wprowadzenie hasła normalnie (bez ukrywania)
-        password = input(prompt)
+        print("Wystąpił błąd:", e)
+
     return password
-
-
-
-
 
 def send_email(sender_email, sender_password, recipient_email, subject, body):
     try:
@@ -70,6 +65,7 @@ def send_email(sender_email, sender_password, recipient_email, subject, body):
         server.quit()
 
         print(f"Wiadomość email została wysłana na {recipient_email}!")
+
     except Exception as e:
         print(f"Błąd podczas wysyłania wiadomości email: {e}")
 
@@ -102,7 +98,7 @@ else:
 # Dane do wysyłania emaila
 
 current_folder = os.path.dirname(os.path.abspath(__file__))
-sender_email = '#### # Mail konta Zoho
+sender_email = "b.anczewski@adwisen.com" # Mail konta Zoho
 password = get_hidden_password("Podaj hasło: ")
 
 subject = "Prośba o uregulowanie płatności !!!!!!!"
@@ -110,13 +106,31 @@ subject = "Prośba o uregulowanie płatności !!!!!!!"
 # Wczytywanie treści wiadomości z pliku "prośba.docx"
 file_path = os.path.join(current_folder, "prośba.docx")
 
-# Obsługa pliku DOCX za pomocą biblioteki python-docx
-doc = docx.Document(file_path)
-body = '\n'.join([para.text for para in doc.paragraphs])
+# Obsługa pliku DOCX za pomocą modułu io
+try:
+    with io.open(file_path, 'rb') as file:
+        doc = docx.Document(file)
+        body = '\n'.join([para.text for para in doc.paragraphs])
 
-print("Treść wiadomości z pliku:")
-print(body)
+    print("Treść wiadomości z pliku:")
+    print(body)
 
-# Wywołanie funkcji send_email dla każdego adresu e-mail
-for recipient_email in emails:
-    send_email(sender_email, password, recipient_email, subject, body)
+    # Wywołanie funkcji send_email dla każdego adresu e-mail
+    for recipient_email in emails:
+        send_email(sender_email, password, recipient_email, subject, body)
+
+except FileNotFoundError:
+    print("Nie znaleziono pliku 'prośba.docx'. Wiadomość e-mail nie została wysłana.")
+except Exception as e:
+    print(f"Błąd podczas wczytywania pliku DOCX lub wysyłania wiadomości email: {e}")
+
+# Zamknięcie połączenia z bazą danych po wysłaniu wszystkich wiadomości
+debtors_engine.dispose()
+print("Połączenie z bazą danych zostało zamknięte.")
+
+# Usuwanie pliku 'debtors.db' po wysłaniu wszystkich wiadomości
+try:
+    os.remove('debtors.db')
+    print("Plik 'debtors.db' został usunięty po wysłaniu wszystkich wiadomości.")
+except Exception as e:
+    print(f"Błąd podczas usuwania pliku 'debtors.db': {e}")
