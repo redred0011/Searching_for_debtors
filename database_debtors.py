@@ -1,13 +1,13 @@
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 
-# Tworzenie silnika bazy danych
+# Create a database engine
 engine = create_engine('sqlite:///Debtors.db', echo=True)
 
-# Inicjalizacja klasy bazowej
+# Initialize the base class
 Base = declarative_base()
 
-# Definicja modelu tabeli
+# Define the table model
 class Customer(Base):
     __tablename__ = 'Debtors'
 
@@ -17,5 +17,5 @@ class Customer(Base):
     e_mail = Column(String)
     number_bank_statement = Column(String)
 
-# Tworzenie tabeli w bazie danych
+# Create the table in the database
 Base.metadata.create_all(engine)
