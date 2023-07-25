@@ -3,11 +3,10 @@ import docx
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import getpass
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import io
+import getpass
 
 # Tworzenie bazy danych i tabeli dla Debtors
 debtors_engine = create_engine('sqlite:///debtors.db')
@@ -28,14 +27,16 @@ BaseDebtors.metadata.create_all(debtors_engine)
 # Tworzenie klasy sesji dla Debtors
 SessionDebtors = sessionmaker(bind=debtors_engine)
 
+# Funkcja do pobrania hasła z konsoli
 def get_hidden_password(prompt="Enter password: "):
     try:
-        password = getpass.getpass("Wprowadź hasło:")
+        password = getpass.getpass(prompt)
     except Exception as e:
         print("Wystąpił błąd:", e)
-
+        password = None
     return password
 
+# Funkcja do wysyłania emaili
 def send_email(sender_email, sender_password, recipient_email, subject, body):
     try:
         # Ustawienia serwera SMTP dla konta Zoho
@@ -68,6 +69,7 @@ def send_email(sender_email, sender_password, recipient_email, subject, body):
     except Exception as e:
         print(f"Błąd podczas wysyłania wiadomości email: {e}")
 
+# Funkcja do pobierania adresów email z bazy danych
 def get_all_emails():
     emails = []
     session = SessionDebtors()
@@ -83,53 +85,53 @@ def get_all_emails():
         session.close()
     return emails
 
-# Wywołanie funkcji pobierającej maile klientów z bazy danych
-emails = get_all_emails()
 
-# Wyświetlenie wyników
-if emails:
-    print("Maile klientów:")
-    for email in emails:
-        print(email)
-else:
-    print("Nie udało się pobrać danych z bazy.")
 
-# Dane do wysyłania emaila
+def read_message_from_file(file_path):
+    try:
+        doc = docx.Document(file_path)
+        full_text = []
+        for para in doc.paragraphs:
+            full_text.append(para.text)
+        return '\n'.join(full_text)
+    except Exception as e:
+        print(f"Błąd podczas odczytu pliku: {e}")
+        return None
 
-current_folder = os.path.dirname(os.path.abspath(__file__))
-sender_email = "########" # Mail konta Zoho
-password = get_hidden_password("Podaj hasło: ")
 
-subject = "Prośba o uregulowanie płatności !!!!!!!"
 
-# Wczytywanie treści wiadomości z pliku "prośba.docx"
-file_path = os.path.join(current_folder, "prośba.docx")
+def main():
+    # Dane do wysyłania emaila
+    current_folder = os.path.dirname(os.path.abspath(__file__))
+    sender_email = "#######"  # Mail konta Zoho
 
-# Obsługa pliku DOCX za pomocą modułu io
-try:
-    with io.open(file_path, 'rb') as file:
-        doc = docx.Document(file)
-        body = '\n'.join([para.text for para in doc.paragraphs])
+    subject = "Prośba o uregulowanie płatności !!!!!!!"
+    file_path = os.path.join(current_folder, "prośba.docx")
+    body = read_message_from_file(file_path)
 
-    print("Treść wiadomości z pliku:")
-    print(body)
+    if body:
+        # Pobranie hasła z konsoli (jeśli nie jest już znane)
+        password = get_hidden_password("Podaj hasło: ")
 
-    # Wywołanie funkcji send_email dla każdego adresu e-mail
-    for recipient_email in emails:
-        send_email(sender_email, password, recipient_email, subject, body)
+        # Wywołanie funkcji pobierającej maile klientów z bazy danych
+        emails = get_all_emails()
 
-except FileNotFoundError:
-    print("Nie znaleziono pliku 'prośba.docx'. Wiadomość e-mail nie została wysłana.")
-except Exception as e:
-    print(f"Błąd podczas wczytywania pliku DOCX lub wysyłania wiadomości email: {e}")
+        # Wyświetlenie wyników
+        if emails:
+            print("Maile klientów:")
+            for email in emails:
+                print(email)
+        else:
+            print("Nie udało się pobrać danych z bazy.")
 
-# Zamknięcie połączenia z bazą danych po wysłaniu wszystkich wiadomości
-debtors_engine.dispose()
-print("Połączenie z bazą danych zostało zamknięte.")
+        # Wywołanie funkcji wysyłającej email dla każdego adresu email z listy
+        for recipient_email in emails:
+            send_email(sender_email, password, recipient_email, subject, body)
 
-# Usuwanie pliku 'debtors.db' po wysłaniu wszystkich wiadomości
-try:
-    os.remove('debtors.db')
-    print("Plik 'debtors.db' został usunięty po wysłaniu wszystkich wiadomości.")
-except Exception as e:
-    print(f"Błąd podczas usuwania pliku 'debtors.db': {e}")
+        # Usuwanie pliku 'debtors.db' po wysłaniu wiadomości e-mail dla wszystkich adresów
+        try:
+            os.remove('debtors.db')
+            print("Plik 'debtors.db' został usunięty po wysłaniu wiadomości e-mail dla wszystkich adresów.")
+        except Exception as e:
+            print(f"Błąd podczas usuwania pliku 'debtors.db' po wysłaniu wiadomości e-mail dla wszystkich adresów: {e}")
+
