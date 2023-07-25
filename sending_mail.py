@@ -8,7 +8,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import getpass
 
-# Tworzenie bazy danych i tabeli dla Debtors
+# Create a database engine and table for Debtors
 debtors_engine = create_engine('sqlite:///debtors.db')
 BaseDebtors = declarative_base()
 
@@ -21,71 +21,69 @@ class Debtor(BaseDebtors):
     e_mail = Column(String)
     number_bank_statement = Column(String)
 
-# Tworzenie tabeli w bazie danych dla Debtors
+# Create the table in the database for Debtors
 BaseDebtors.metadata.create_all(debtors_engine)
 
-# Tworzenie klasy sesji dla Debtors
+# Create a session class for Debtors
 SessionDebtors = sessionmaker(bind=debtors_engine)
 
-# Funkcja do pobrania hasła z konsoli
+# Function to get a password from the console
 def get_hidden_password(prompt="Enter password: "):
     try:
         password = getpass.getpass(prompt)
     except Exception as e:
-        print("Wystąpił błąd:", e)
+        print("Error:", e)
         password = None
     return password
 
-# Funkcja do wysyłania emaili
+# Function to send emails
 def send_email(sender_email, sender_password, recipient_email, subject, body):
     try:
-        # Ustawienia serwera SMTP dla konta Zoho
+        # SMTP server settings for Zoho account
         smtp_server = 'smtppro.zoho.com'
         smtp_port = 465
 
-        # Tworzenie wiadomości email
+        # Create an email message
         message = MIMEMultipart()
         message['From'] = sender_email
         message['To'] = recipient_email
         message['Subject'] = subject
 
-        # Dodawanie treści wiadomości (tekst i/lub HTML)
+        # Add the message content (text and/or HTML)
         message.attach(MIMEText(body, 'plain'))
 
-        # Utworzenie połączenia z serwerem SMTP
+        # Create a connection to the SMTP server
         server = smtplib.SMTP_SSL(smtp_server, smtp_port)
 
-        # Logowanie do serwera SMTP
+        # Log in to the SMTP server
         server.login(sender_email, sender_password)
 
-        # Wysłanie wiadomości email
+        # Send the email message
         server.sendmail(sender_email, recipient_email, message.as_string())
 
-        # Zamknięcie połączenia z serwerem SMTP
+        # Close the connection to the SMTP server
         server.quit()
 
-        print(f"Wiadomość email została wysłana na {recipient_email}!")
+        print(f"Email sent to {recipient_email}!")
 
     except Exception as e:
-        print(f"Błąd podczas wysyłania wiadomości email: {e}")
+        print(f"Error sending email: {e}")
 
-# Funkcja do pobierania adresów email z bazy danych
+# Function to get email addresses from the database
 def get_all_emails():
     emails = []
     session = SessionDebtors()
     try:
-        # Wykonanie zapytania, które pobiera maile wszystkich klientów
+        # Execute a query that retrieves the emails of all customers
         debtors = session.query(Debtor.e_mail).all()
 
-        # Pobranie adresów email jako łańcuchy znaków
+        # Get email addresses as strings
         emails = [email[0] for email in debtors]
     except Exception as e:
-        print("Wystąpił błąd:", e)
+        print("Error:", e)
     finally:
         session.close()
     return emails
-
-
 
 def read_message_from_file(file_path):
     try:
@@ -95,43 +93,35 @@ def read_message_from_file(file_path):
             full_text.append(para.text)
         return '\n'.join(full_text)
     except Exception as e:
-        print(f"Błąd podczas odczytu pliku: {e}")
+        print(f"Error reading file: {e}")
         return None
 
-
-
 def main():
-    # Dane do wysyłania emaila
+    # Email sending data
     current_folder = os.path.dirname(os.path.abspath(__file__))
-    sender_email = "#######"  # Mail konta Zoho
+    sender_email = "#######"  # Zoho account email
 
-    subject = "Prośba o uregulowanie płatności !!!!!!!"
+    subject = "Request for payment !!!!!!!"
     file_path = os.path.join(current_folder, "prośba.docx")
     body = read_message_from_file(file_path)
 
     if body:
-        # Pobranie hasła z konsoli (jeśli nie jest już znane)
-        password = get_hidden_password("Podaj hasło: ")
+        # Get password from console (if not already known)
+        password = get_hidden_password("Enter password: ")
 
-        # Wywołanie funkcji pobierającej maile klientów z bazy danych
+        # Call function to retrieve customer emails from database
         emails = get_all_emails()
 
-        # Wyświetlenie wyników
+        # Display results
         if emails:
-            print("Maile klientów:")
+            print("Customer emails:")
             for email in emails:
                 print(email)
         else:
-            print("Nie udało się pobrać danych z bazy.")
+            print("Failed to retrieve data from database.")
 
-        # Wywołanie funkcji wysyłającej email dla każdego adresu email z listy
+        # Call function to send email for each email address on the list
         for recipient_email in emails:
             send_email(sender_email, password, recipient_email, subject, body)
 
-        # Usuwanie pliku 'debtors.db' po wysłaniu wiadomości e-mail dla wszystkich adresów
-        try:
-            os.remove('debtors.db')
-            print("Plik 'debtors.db' został usunięty po wysłaniu wiadomości e-mail dla wszystkich adresów.")
-        except Exception as e:
-            print(f"Błąd podczas usuwania pliku 'debtors.db' po wysłaniu wiadomości e-mail dla wszystkich adresów: {e}")
 
