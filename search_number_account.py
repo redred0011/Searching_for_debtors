@@ -3,13 +3,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import csv
 
-# Tworzenie silnika bazy danych dla Customers
+# Create a database engine for Customers
 customers_engine = create_engine('sqlite:///Customers.db', echo=True)
 
-# Inicjalizacja klasy bazowej dla Customers
+# Initialize the base class for Customers
 BaseCustomers = declarative_base()
 
-# Definicja modelu tabeli dla Customers
+# Define the table model for Customers
 class Customer(BaseCustomers): 
     __tablename__ = 'Customers'
     
@@ -19,19 +19,19 @@ class Customer(BaseCustomers):
     e_mail = Column(String)  
     number_bank_statement = Column(String)  
     
-# Tworzenie tabeli w bazie danych dla Customers
+# Create the table in the database for Customers
 BaseCustomers.metadata.create_all(customers_engine)
 
-# Tworzenie klasy sesji dla Customers
+# Create a session class for Customers
 SessionCustomers = sessionmaker(bind=customers_engine)
 
-# Tworzenie silnika bazy danych dla Debtors
+# Create a database engine for Debtors
 debtors_engine = create_engine('sqlite:///Debtors.db', echo=True)
 
-# Inicjalizacja klasy bazowej dla Debtors
+# Initialize the base class for Debtors
 BaseDebtors = declarative_base()
 
-# Definicja modelu tabeli dla Debtors
+# Define the table model for Debtors
 class Debtor(BaseDebtors):
     __tablename__ = 'Debtors'
 
@@ -41,14 +41,15 @@ class Debtor(BaseDebtors):
     e_mail = Column(String)
     number_bank_statement = Column(String)
 
-# Tworzenie tabeli w bazie danych dla Debtors
+# Create the table in the database for Debtors
 BaseDebtors.metadata.create_all(debtors_engine)
 
-# Tworzenie klasy sesji dla Debtors
+# Create a session class for Debtors
 SessionDebtors = sessionmaker(bind=debtors_engine)
 
 
 def add_customer_if_not_exist(name, number_phone, e_mail, number_bank_statement):
+    # Add a customer to the database if they don't already exist
     session = SessionCustomers()
     customer = session.query(Customer).filter_by(name=name, e_mail=e_mail).first()
 
@@ -59,6 +60,7 @@ def add_customer_if_not_exist(name, number_phone, e_mail, number_bank_statement)
     session.close()
 
 def get_customer_bank_account(customer_id):
+    # Get the bank account number of a customer from the database
     session = SessionCustomers()
     customer = session.query(Customer).filter_by(id=customer_id).first()
     session.close()
@@ -69,10 +71,11 @@ def get_customer_bank_account(customer_id):
         return None
 
 def find_transactions_with_account_number(account_number, filename):
+    # Find transactions in a CSV file that match a given account number
     found_rows = []
     with open(filename, 'r', encoding='utf-8') as file:
         reader = csv.reader(file)
-        header = next(reader)  # Pomijamy nagłówek
+        header = next(reader)  # Skip the header row
         for row in reader:
             if account_number in row:
                 found_rows.append(dict(zip(header, row)))
@@ -81,31 +84,34 @@ def find_transactions_with_account_number(account_number, filename):
 def main():
     csv_file = 'bank_statements.csv'
 
+    # Get all customers from the database
     session = SessionCustomers()
     customers = session.query(Customer).all()
     session.close()
 
     if not customers:
-        print("Brak dostępnych klientów.")
+        print("No customers available.")
         return
 
-    accounts_without_transactions = []  # Lista przechowująca numery kont, dla których nie znaleziono operacji
+    accounts_without_transactions = []  # List to store account numbers that have no transactions
 
+    # Find transactions for each customer's bank account number
     for customer in customers:
         account_number = customer.number_bank_statement
         found_rows = find_transactions_with_account_number(account_number, csv_file)
 
         if not found_rows:
-            print(f"Nie znaleziono żadnych operacji dla klienta o ID: {customer.id}, Nazwie: {customer.name}, E-mail: {customer.e_mail}")
+            print(f"No transactions found for customer with ID: {customer.id}, Name: {customer.name}, Email: {customer.e_mail}")
             accounts_without_transactions.append(customer)
 
         else:
-            print(f"Operacje dla klienta o ID: {customer.id}, nazwie: {customer.name} i numerze konta bankowego: {account_number}")
+            print(f"Transactions for customer with ID: {customer.id}, Name: {customer.name}, and Bank Account Number: {account_number}")
             for row in found_rows:
                 print(row)
 
+    # Add customers with no transactions to the Debtors table
     if accounts_without_transactions:
-        print("Operacja dla tego kontrahenta nie została znaleziona. Dodawanie do Debtors:")
+        print("No transactions found for this customer. Adding to Debtors:")
         session = SessionDebtors()
         for debtor_customer in accounts_without_transactions:
             debtor = Debtor(
