@@ -65,9 +65,10 @@
 - [Visual Studio Code] - Helps me with the code I entered
 - [Git Bash] - Helps me connect online and standard repository
 - [Github] - My main repositories
-- [Sqlalchemy] - Gives me the current date
+- [Sqlalchemy] - Data storage
 - [Getpass] - Password hiding
 - [pywhatkit] - Sending whatsapp messages
+- [mail.mime.multipart] - Sending mail messages
 
 ## License 
 
