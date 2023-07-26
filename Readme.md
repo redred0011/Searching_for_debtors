@@ -38,11 +38,11 @@
 
 ### Search_numer_account
 
-   This python script manages two databases: one for customers and one for debtors. 
-   It uses the SQLAlchemy library for effective interaction with databases. 
-   This function searches for bank numbers in the database and compares them to 
-   account numbers on the bank statement, if such a number is not on the statement, 
-   the data is redirected to the debtors database
+    This python script manages two databases: one for customers and one for debtors. 
+    It uses the SQLAlchemy library for effective interaction with databases. 
+    This function searches for bank numbers in the database and compares them to 
+    account numbers on the bank statement, if such a number is not on the statement, 
+    the data is redirected to the debtors database
 
 ### Sending_mail
 
